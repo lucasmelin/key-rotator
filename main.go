@@ -46,6 +46,12 @@ type GitHubClient struct {
 	*github.Client
 }
 
+// Secret destination types
+const (
+	typeGitHubRepository           = "github-repository"
+	typeGitHubRepositoryDependabot = "github-repository-dependabot"
+)
+
 func main() {
 	// Check if the YAML file path is provided as an argument.
 	if len(os.Args) < 2 {
@@ -81,9 +87,9 @@ func main() {
 
 			// Get the public key for the repository.
 			var key *github.PublicKey
-			if dest.Type == "github-secret" {
+			if dest.Type == typeGitHubRepository {
 				key, _, err = client.Actions.GetRepoPublicKey(ctx, owner, repo)
-			} else if dest.Type == "github-dependabot" {
+			} else if dest.Type == typeGitHubRepositoryDependabot {
 				key, _, err = client.Dependabot.GetRepoPublicKey(ctx, owner, repo)
 			} else {
 				log.Fatalf("Unsupported destination type: %s", dest.Type)
@@ -107,9 +113,9 @@ func main() {
 			}
 
 			// Update the secret in the repository.
-			if dest.Type == "github-secret" {
+			if dest.Type == typeGitHubRepository {
 				err = client.updateGitHubSecret(ctx, owner, repo, ghSecret)
-			} else if dest.Type == "github-dependabot" {
+			} else if dest.Type == typeGitHubRepositoryDependabot {
 				err = client.updateDependabotSecret(ctx, owner, repo, ghSecret)
 			}
 
