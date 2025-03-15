@@ -63,6 +63,9 @@ secrets:
 
    ```sh
    go run . path/to/your/key.yaml
+   # Or optionally, use the dry-run flag to see what
+   # changes would be made without updating the secrets.
+   go run . --dry-run path/to/your/key.yaml
    ```
 
 4. Follow the prompts to enter the secret values.
