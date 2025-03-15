@@ -35,9 +35,8 @@ func NewClient() Client {
 
 // RepositorySecret represents a GitHub repository secret destination.
 type RepositorySecret struct {
-	Description string `yaml:"description"`
-	Repo        string `yaml:"repo"`
-	Name        string `yaml:"name"`
+	Repo string `yaml:"repo"`
+	Name string `yaml:"name"`
 }
 
 // UpdateSecret updates the GitHub Actions secret in the repository.
@@ -69,19 +68,18 @@ func (d RepositorySecret) UpdateSecret(ctx context.Context, client Client, secre
 
 // GetDescription returns the destination description.
 func (d RepositorySecret) GetDescription() string {
-	return d.Description
+	return fmt.Sprintf("%s GitHub Repository Secret in the %s repository", d.Name, d.Repo)
 }
 
 // DependabotRepositorySecret represents a GitHub Dependabot secret destination.
 type DependabotRepositorySecret struct {
-	Description string `yaml:"description"`
-	Repo        string `yaml:"repo"`
-	Name        string `yaml:"name"`
+	Repo string `yaml:"repo"`
+	Name string `yaml:"name"`
 }
 
 // GetDescription returns the destination description.
 func (d DependabotRepositorySecret) GetDescription() string {
-	return d.Description
+	return fmt.Sprintf("%s GitHub Dependabot Repository Secret in the %s repository", d.Name, d.Repo)
 }
 
 // UpdateSecret updates the Dependabot secret in the repository.
@@ -113,7 +111,6 @@ func (d DependabotRepositorySecret) UpdateSecret(ctx context.Context, client Cli
 
 // RepositoryEnvironmentSecret represents a GitHub environment secret destination.
 type RepositoryEnvironmentSecret struct {
-	Description string `yaml:"description"`
 	Repo        string `yaml:"repo"`
 	Name        string `yaml:"name"`
 	Environment string `yaml:"environment"`
@@ -121,7 +118,7 @@ type RepositoryEnvironmentSecret struct {
 
 // GetDescription returns the destination description.
 func (d RepositoryEnvironmentSecret) GetDescription() string {
-	return d.Description
+	return fmt.Sprintf("%s GitHub Repository Environment Secret in the %s repository's %s environment", d.Name, d.Repo, d.Environment)
 }
 
 // UpdateSecret updates the GitHub Actions environment secret in the repository.

@@ -76,9 +76,8 @@ func TestRepositorySecret_UpdateSecret_ValidRepo(t *testing.T) {
 
 	ctx := context.Background()
 	s := RepositorySecret{
-		Description: "Test secret",
-		Repo:        "o/r",
-		Name:        "mysecret",
+		Repo: "o/r",
+		Name: "mysecret",
 	}
 	err := s.UpdateSecret(ctx, client, "mysecretvalue")
 	if err != nil {
@@ -91,9 +90,8 @@ func TestRepositorySecret_UpdateSecret_InvalidRepo(t *testing.T) {
 
 	ctx := context.Background()
 	s := RepositorySecret{
-		Description: "Test secret",
-		Repo:        "invalid/repo/format",
-		Name:        "mysecret",
+		Repo: "invalid/repo/format",
+		Name: "mysecret",
 	}
 	err := s.UpdateSecret(ctx, client, "mysecretvalue")
 	if err == nil {
@@ -123,9 +121,8 @@ func TestDependabotRepositorySecret_UpdateSecret_ValidRepo(t *testing.T) {
 
 	ctx := context.Background()
 	s := DependabotRepositorySecret{
-		Description: "Test secret",
-		Repo:        "o/r",
-		Name:        "mysecret",
+		Repo: "o/r",
+		Name: "mysecret",
 	}
 	err := s.UpdateSecret(ctx, client, "mysecretvalue")
 	if err != nil {
@@ -138,9 +135,8 @@ func TestDependabotRepositorySecret_UpdateSecret_InvalidRepo(t *testing.T) {
 
 	ctx := context.Background()
 	s := DependabotRepositorySecret{
-		Description: "Test secret",
-		Repo:        "invalid/repo/format",
-		Name:        "mysecret",
+		Repo: "invalid/repo/format",
+		Name: "mysecret",
 	}
 	err := s.UpdateSecret(ctx, client, "mysecretvalue")
 	if err == nil {
@@ -175,7 +171,6 @@ func TestRepositoryEnvironmentSecret_UpdateSecret_ValidRepo(t *testing.T) {
 
 	ctx := context.Background()
 	s := RepositoryEnvironmentSecret{
-		Description: "Test secret",
 		Repo:        "o/r",
 		Name:        "mysecret",
 		Environment: "env",
@@ -191,7 +186,6 @@ func TestRepositoryEnvironmentSecret_UpdateSecret_InvalidRepo(t *testing.T) {
 
 	ctx := context.Background()
 	s := RepositoryEnvironmentSecret{
-		Description: "Test secret",
 		Repo:        "invalid/repo/format",
 		Name:        "mysecret",
 		Environment: "env",

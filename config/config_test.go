@@ -25,7 +25,6 @@ secrets:
     description: A test secret
     destinations:
       - type: github-repository
-        description: Test repo secret
         repo: owner/repo
         name: TEST_SECRET
 `,
@@ -38,9 +37,8 @@ secrets:
 						Destinations: []DestinationWrapper{
 							{
 								Destination: github.RepositorySecret{
-									Description: "Test repo secret",
-									Repo:        "owner/repo",
-									Name:        "TEST_SECRET",
+									Repo: "owner/repo",
+									Name: "TEST_SECRET",
 								},
 							},
 						},
@@ -56,7 +54,6 @@ secrets:
     description: A test secret
     destinations:
       - type: github-repository-dependabot
-        description: Test dependabot secret
         repo: owner/repo
         name: TEST_SECRET
 `,
@@ -69,9 +66,8 @@ secrets:
 						Destinations: []DestinationWrapper{
 							{
 								Destination: github.DependabotRepositorySecret{
-									Description: "Test dependabot secret",
-									Repo:        "owner/repo",
-									Name:        "TEST_SECRET",
+									Repo: "owner/repo",
+									Name: "TEST_SECRET",
 								},
 							},
 						},
@@ -87,7 +83,6 @@ secrets:
     description: A test secret
     destinations:
       - type: github-repository-environment
-        description: Test environment secret
         repo: owner/repo
         environment: prod
         name: TEST_SECRET
@@ -101,7 +96,6 @@ secrets:
 						Destinations: []DestinationWrapper{
 							{
 								Destination: github.RepositoryEnvironmentSecret{
-									Description: "Test environment secret",
 									Repo:        "owner/repo",
 									Environment: "prod",
 									Name:        "TEST_SECRET",
@@ -181,14 +175,12 @@ func TestUnmarshalYAML(t *testing.T) {
 		{
 			name: "Valid GitHub repository secret",
 			yamlContent: `type: github-repository
-description: Test repo secret
 repo: owner/repo
 name: TEST_SECRET`,
 			expectError: false,
 			expected: github.RepositorySecret{
-				Description: "Test repo secret",
-				Repo:        "owner/repo",
-				Name:        "TEST_SECRET",
+				Repo: "owner/repo",
+				Name: "TEST_SECRET",
 			},
 		},
 		{
@@ -198,7 +190,7 @@ name: TEST_SECRET`,
 		},
 		{
 			name:        "Missing type",
-			yamlContent: `description: Missing type secret`,
+			yamlContent: `repo: octocat/example`,
 			expectError: true,
 		},
 	}
