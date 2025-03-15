@@ -4,6 +4,7 @@ go 1.24.0
 
 require (
 	github.com/charmbracelet/huh v0.6.0
+	github.com/google/go-cmp v0.6.0
 	github.com/google/go-github/v69 v69.2.0
 	github.com/jamesruan/sodium v1.0.14
 	gopkg.in/yaml.v3 v3.0.1
