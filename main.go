@@ -32,6 +32,7 @@ type Destination struct {
 	Type        string `yaml:"type"`
 	Repo        string `yaml:"repo"`
 	Name        string `yaml:"name"`
+	Environment string `yaml:"environment"`
 }
 
 // GitHubSecret represents an encrypted GitHub secret.
@@ -48,8 +49,9 @@ type GitHubClient struct {
 
 // Secret destination types
 const (
-	typeGitHubRepository           = "github-repository"
-	typeGitHubRepositoryDependabot = "github-repository-dependabot"
+	typeGitHubRepository            = "github-repository"
+	typeGitHubRepositoryDependabot  = "github-repository-dependabot"
+	typeGitHubRepositoryEnvironment = "github-repository-environment"
 )
 
 func main() {
@@ -87,16 +89,28 @@ func main() {
 
 			// Get the public key for the repository.
 			var key *github.PublicKey
-			if dest.Type == typeGitHubRepository {
+			switch dest.Type {
+			case typeGitHubRepository:
 				key, _, err = client.Actions.GetRepoPublicKey(ctx, owner, repo)
-			} else if dest.Type == typeGitHubRepositoryDependabot {
+				if err != nil {
+					log.Fatalf("Failed to get public key: %v", err)
+				}
+			case typeGitHubRepositoryDependabot:
 				key, _, err = client.Dependabot.GetRepoPublicKey(ctx, owner, repo)
-			} else {
+				if err != nil {
+					log.Fatalf("Failed to get public key: %v", err)
+				}
+			case typeGitHubRepositoryEnvironment:
+				repository, _, err := client.Repositories.Get(ctx, owner, repo)
+				if err != nil {
+					log.Fatalf("Failed to get repository: %v", err)
+				}
+				key, _, err = client.Actions.GetEnvPublicKey(ctx, int(repository.GetID()), dest.Environment)
+				if err != nil {
+					log.Fatalf("Failed to get public key: %v", err)
+				}
+			default:
 				log.Fatalf("Unsupported destination type: %s", dest.Type)
-			}
-
-			if err != nil {
-				log.Fatalf("Failed to get public key: %v", err)
 			}
 
 			// Encrypt the secret value using the public key.
@@ -113,14 +127,24 @@ func main() {
 			}
 
 			// Update the secret in the repository.
-			if dest.Type == typeGitHubRepository {
-				err = client.updateGitHubSecret(ctx, owner, repo, ghSecret)
-			} else if dest.Type == typeGitHubRepositoryDependabot {
+			switch dest.Type {
+			case typeGitHubRepository:
+				err = client.updateRepositorySecret(ctx, owner, repo, ghSecret)
+				if err != nil {
+					log.Fatalf("Failed to update secret: %v", err)
+				}
+			case typeGitHubRepositoryDependabot:
 				err = client.updateDependabotSecret(ctx, owner, repo, ghSecret)
-			}
-
-			if err != nil {
-				log.Fatalf("Failed to update secret: %v", err)
+				if err != nil {
+					log.Fatalf("Failed to update secret: %v", err)
+				}
+			case typeGitHubRepositoryEnvironment:
+				err = client.updateEnvironmentSecret(ctx, owner, repo, dest.Environment, ghSecret)
+				if err != nil {
+					log.Fatalf("Failed to update secret: %v", err)
+				}
+			default:
+				log.Fatalf("Unsupported destination type: %s", dest.Type)
 			}
 
 			fmt.Println("Updated", dest.Description)
@@ -177,8 +201,8 @@ func encryptSodiumSecret(secretValue string, publicKey string) (string, error) {
 	return base64.StdEncoding.EncodeToString(encryptedSecret), nil
 }
 
-// updateGitHubSecret updates a GitHub Actions secret in the repository.
-func (ghc GitHubClient) updateGitHubSecret(ctx context.Context, owner string, repo string, secret GitHubSecret) error {
+// updateRepositorySecret updates a GitHub Actions secret in the repository.
+func (ghc GitHubClient) updateRepositorySecret(ctx context.Context, owner string, repo string, secret GitHubSecret) error {
 	s := &github.EncryptedSecret{
 		Name:           secret.Name,
 		KeyID:          secret.KeyID,
@@ -196,5 +220,21 @@ func (ghc GitHubClient) updateDependabotSecret(ctx context.Context, owner string
 		EncryptedValue: secret.EncryptedValue,
 	}
 	_, err := ghc.Dependabot.CreateOrUpdateRepoSecret(ctx, owner, repo, s)
+	return err
+}
+
+// updateEnvironmentSecret updates a GitHub environment secret in the repository.
+func (ghc GitHubClient) updateEnvironmentSecret(ctx context.Context, owner string, repo string, environment string, secret GitHubSecret) error {
+	repository, _, err := ghc.Repositories.Get(ctx, owner, repo)
+	if err != nil {
+		log.Fatalf("Failed to get repository: %v", err)
+	}
+
+	s := &github.EncryptedSecret{
+		Name:           secret.Name,
+		KeyID:          secret.KeyID,
+		EncryptedValue: secret.EncryptedValue,
+	}
+	_, err = ghc.Actions.CreateOrUpdateEnvSecret(ctx, int(repository.GetID()), environment, s)
 	return err
 }

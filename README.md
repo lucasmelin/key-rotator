@@ -25,7 +25,7 @@ The configuration file is a YAML file that specifies the secrets and their desti
 ```yaml
 secrets:
   - name: "SERVICE_ACCOUNT_KEY"
-    description: "Secret for the service account"
+    description: "Secret key for the service account"
     destinations:
       - description: "SERVICE_ACCOUNT_KEY for lucasmelin/key-rotator in GitHub Actions"
         type: "github-repository"
@@ -35,15 +35,16 @@ secrets:
         type: "github-repository-dependabot"
         repo: "lucasmelin/key-rotator"
         name: "SERVICE_ACCOUNT_KEY"
+      - description: "SERVICE_ACCOUNT_KEY for lucasmelin/key-rotator in Dependabot"
+        type: "github-repository-environment"
+        repo: "lucasmelin/key-rotator"
+        environment: "prod"
+        name: "SERVICE_ACCOUNT_KEY"
   - name: "SERVICE_ACCOUNT_USERNAME"
     description: "Secret username for the service account"
     destinations:
       - description: "SERVICE_ACCOUNT_USERNAME for lucasmelin/key-rotator in GitHub Actions"
         type: "github-repository"
-        repo: "lucasmelin/key-rotator"
-        name: "SERVICE_ACCOUNT_USERNAME"
-      - description: "SERVICE_ACCOUNT_USERNAME for lucasmelin/key-rotator in Dependabot"
-        type: "github-repository-dependabot"
         repo: "lucasmelin/key-rotator"
         name: "SERVICE_ACCOUNT_USERNAME"
 ```
