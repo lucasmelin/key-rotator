@@ -100,7 +100,7 @@ func main() {
 			}
 
 			// Create a GitHubSecret object.
-			secret := GitHubSecret{
+			ghSecret := GitHubSecret{
 				Name:           dest.Name,
 				KeyID:          key.GetKeyID(),
 				EncryptedValue: encryptedValue,
@@ -108,9 +108,9 @@ func main() {
 
 			// Update the secret in the repository.
 			if dest.Type == "github-secret" {
-				err = client.updateGitHubSecret(ctx, owner, repo, secret)
+				err = client.updateGitHubSecret(ctx, owner, repo, ghSecret)
 			} else if dest.Type == "github-dependabot" {
-				err = client.updateDependabotSecret(ctx, owner, repo, secret)
+				err = client.updateDependabotSecret(ctx, owner, repo, ghSecret)
 			}
 
 			if err != nil {
