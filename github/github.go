@@ -2,6 +2,7 @@ package github
 
 import (
 	"context"
+	"crypto/rand"
 	"encoding/base64"
 	"fmt"
 	"log"
@@ -9,7 +10,7 @@ import (
 	"strings"
 
 	"github.com/google/go-github/v69/github"
-	"github.com/jamesruan/sodium"
+	"golang.org/x/crypto/nacl/box"
 )
 
 // GitHub secret destination types.
@@ -199,14 +200,15 @@ type secret struct {
 }
 
 // encryptSodiumSecret encrypts a secret value using a public key.
-// It uses the sodium library for encryption and returns the base64-encoded encrypted value.
+// It uses the crypto/nacl library for encryption and returns the base64-encoded encrypted value.
 func encryptSodiumSecret(secretValue string, publicKey string) (string, error) {
-	secretBytes := sodium.Bytes(secretValue)
 	publicKeyBytes, err := base64.StdEncoding.DecodeString(publicKey)
 	if err != nil {
 		return "", fmt.Errorf("failed to decode public key: %w", err)
 	}
-	sodiumKey := sodium.BoxPublicKey{Bytes: publicKeyBytes}
-	encryptedSecret := secretBytes.SealedBox(sodiumKey)
-	return base64.StdEncoding.EncodeToString(encryptedSecret), nil
+	encrypted, err := box.SealAnonymous(nil, []byte(secretValue), (*[32]byte)(publicKeyBytes), rand.Reader)
+	if err != nil {
+		return "", fmt.Errorf("failed to encrypt secret: %w", err)
+	}
+	return base64.StdEncoding.EncodeToString(encrypted), nil
 }

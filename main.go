@@ -1,5 +1,9 @@
 package main
 
+/*
+#cgo pkg-config: libsodium
+*/
+
 import (
 	"context"
 	"flag"
