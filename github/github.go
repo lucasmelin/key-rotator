@@ -206,7 +206,16 @@ func encryptSodiumSecret(secretValue string, publicKey string) (string, error) {
 	if err != nil {
 		return "", fmt.Errorf("failed to decode public key: %w", err)
 	}
-	encrypted, err := box.SealAnonymous(nil, []byte(secretValue), (*[32]byte)(publicKeyBytes), rand.Reader)
+	// Ensure the public key is the correct length
+	if len(publicKeyBytes) != 32 {
+		return "", fmt.Errorf("invalid public key length: expected 32 bytes, got %d", len(publicKeyBytes))
+	}
+
+	// Convert the public key to the required type
+	var publicKeyArray [32]byte
+	copy(publicKeyArray[:], publicKeyBytes)
+
+	encrypted, err := box.SealAnonymous(nil, []byte(secretValue), &publicKeyArray, rand.Reader)
 	if err != nil {
 		return "", fmt.Errorf("failed to encrypt secret: %w", err)
 	}

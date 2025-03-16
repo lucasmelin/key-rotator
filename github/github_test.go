@@ -2,6 +2,7 @@ package github
 
 import (
 	"context"
+	"crypto/rand"
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
@@ -11,14 +12,16 @@ import (
 	"testing"
 
 	"github.com/google/go-github/v69/github"
-	"github.com/jamesruan/sodium"
+	"golang.org/x/crypto/nacl/box"
 )
 
 func TestEncryptSodiumSecret_ValidKey(t *testing.T) {
 	secretValue := "mysecret"
-	keyPair := sodium.MakeBoxKP()
-
-	publicKey := base64.StdEncoding.EncodeToString(keyPair.PublicKey.Bytes)
+	public, private, err := box.GenerateKey(rand.Reader)
+	if err != nil {
+		t.Fatalf("Expected no error, got %v", err)
+	}
+	publicKey := base64.StdEncoding.EncodeToString(public[:])
 	encryptedValue, err := encryptSodiumSecret(secretValue, publicKey)
 	if err != nil {
 		t.Fatalf("Expected no error, got %v", err)
@@ -27,9 +30,9 @@ func TestEncryptSodiumSecret_ValidKey(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Expected no error, got %v", err)
 	}
-	newValue, err := sodium.Bytes(encryptedBytes).SealedBoxOpen(keyPair)
-	if err != nil {
-		t.Fatalf("Expected no error, got %v", err)
+	newValue, ok := box.OpenAnonymous(nil, encryptedBytes, public, private)
+	if !ok {
+		t.Fatalf("Expected OpenAnonymous to success, got %v", ok)
 	}
 	if string(newValue) != secretValue {
 		t.Fatalf("Expected %s, got %s", secretValue, newValue)
@@ -38,8 +41,11 @@ func TestEncryptSodiumSecret_ValidKey(t *testing.T) {
 
 func TestEncryptSodiumSecret_InvalidKey(t *testing.T) {
 	secretValue := "mysecret"
-	keyPair := sodium.MakeBoxKP()
-	publicKey := base64.StdEncoding.EncodeToString(keyPair.PublicKey.Bytes)
+	public, _, err := box.GenerateKey(rand.Reader)
+	if err != nil {
+		t.Fatalf("Expected no error, got %v", err)
+	}
+	publicKey := base64.StdEncoding.EncodeToString(public[:])
 	encryptedValue, err := encryptSodiumSecret(secretValue, publicKey)
 	if err != nil {
 		t.Fatalf("Expected no error, got %v", err)
@@ -48,20 +54,24 @@ func TestEncryptSodiumSecret_InvalidKey(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Expected no error, got %v", err)
 	}
-	invalid := sodium.MakeBoxKP()
-	_, err = sodium.Bytes(encryptedBytes).SealedBoxOpen(invalid)
-	if err == nil {
-		t.Fatal("Expected an error, got nil")
+	_, badPrivate, err := box.GenerateKey(rand.Reader)
+
+	_, ok := box.OpenAnonymous(nil, encryptedBytes, public, badPrivate)
+	if ok {
+		t.Fatal("Expected OpenAnonymous to fail with the incorrect key, got success")
 	}
 }
 func TestRepositorySecret_UpdateSecret_ValidRepo(t *testing.T) {
 	client, mux, _ := setup(t)
 
-	kp := sodium.MakeBoxKP()
+	public, private, err := box.GenerateKey(rand.Reader)
+	if err != nil {
+		t.Fatalf("Expected no error, got %v", err)
+	}
 
 	mux.HandleFunc("/repos/o/r/actions/secrets/public-key", func(w http.ResponseWriter, r *http.Request) {
 		testMethod(t, r, "GET")
-		fmt.Fprint(w, fmt.Sprintf(`{"key_id":"1234","key":"%s"}`, base64.StdEncoding.EncodeToString(kp.PublicKey.Bytes)))
+		fmt.Fprint(w, fmt.Sprintf(`{"key_id":"1234","key":"%s"}`, base64.StdEncoding.EncodeToString(public[:])))
 	})
 
 	mux.HandleFunc("/repos/o/r/actions/secrets/mysecret", func(w http.ResponseWriter, r *http.Request) {
@@ -70,7 +80,7 @@ func TestRepositorySecret_UpdateSecret_ValidRepo(t *testing.T) {
 		if err := json.NewDecoder(r.Body).Decode(&reqBody); err != nil {
 			t.Fatalf("Failed to decode request body: %v", err)
 		}
-		validateSodiumSecret(t, "mysecretvalue", reqBody.EncryptedValue, kp)
+		validateSodiumSecret(t, "mysecretvalue", reqBody.EncryptedValue, public, private)
 		w.WriteHeader(http.StatusNoContent)
 	})
 
@@ -79,7 +89,7 @@ func TestRepositorySecret_UpdateSecret_ValidRepo(t *testing.T) {
 		Repo: "o/r",
 		Name: "mysecret",
 	}
-	err := s.UpdateSecret(ctx, client, "mysecretvalue")
+	err = s.UpdateSecret(ctx, client, "mysecretvalue")
 	if err != nil {
 		t.Fatalf("Expected no error, got %v", err)
 	}
@@ -102,11 +112,14 @@ func TestRepositorySecret_UpdateSecret_InvalidRepo(t *testing.T) {
 func TestDependabotRepositorySecret_UpdateSecret_ValidRepo(t *testing.T) {
 	client, mux, _ := setup(t)
 
-	kp := sodium.MakeBoxKP()
+	public, private, err := box.GenerateKey(rand.Reader)
+	if err != nil {
+		t.Fatalf("Expected no error, got %v", err)
+	}
 
 	mux.HandleFunc("/repos/o/r/dependabot/secrets/public-key", func(w http.ResponseWriter, r *http.Request) {
 		testMethod(t, r, "GET")
-		fmt.Fprint(w, fmt.Sprintf(`{"key_id":"1234","key":"%s"}`, base64.StdEncoding.EncodeToString(kp.PublicKey.Bytes)))
+		fmt.Fprint(w, fmt.Sprintf(`{"key_id":"1234","key":"%s"}`, base64.StdEncoding.EncodeToString(public[:])))
 	})
 
 	mux.HandleFunc("/repos/o/r/dependabot/secrets/mysecret", func(w http.ResponseWriter, r *http.Request) {
@@ -115,7 +128,7 @@ func TestDependabotRepositorySecret_UpdateSecret_ValidRepo(t *testing.T) {
 		if err := json.NewDecoder(r.Body).Decode(&reqBody); err != nil {
 			t.Fatalf("Failed to decode request body: %v", err)
 		}
-		validateSodiumSecret(t, "mysecretvalue", reqBody.EncryptedValue, kp)
+		validateSodiumSecret(t, "mysecretvalue", reqBody.EncryptedValue, public, private)
 		w.WriteHeader(http.StatusNoContent)
 	})
 
@@ -124,7 +137,7 @@ func TestDependabotRepositorySecret_UpdateSecret_ValidRepo(t *testing.T) {
 		Repo: "o/r",
 		Name: "mysecret",
 	}
-	err := s.UpdateSecret(ctx, client, "mysecretvalue")
+	err = s.UpdateSecret(ctx, client, "mysecretvalue")
 	if err != nil {
 		t.Fatalf("Expected no error, got %v", err)
 	}
@@ -147,7 +160,10 @@ func TestDependabotRepositorySecret_UpdateSecret_InvalidRepo(t *testing.T) {
 func TestRepositoryEnvironmentSecret_UpdateSecret_ValidRepo(t *testing.T) {
 	client, mux, _ := setup(t)
 
-	kp := sodium.MakeBoxKP()
+	public, private, err := box.GenerateKey(rand.Reader)
+	if err != nil {
+		t.Fatalf("Expected no error, got %v", err)
+	}
 
 	mux.HandleFunc("/repos/o/r", func(w http.ResponseWriter, r *http.Request) {
 		testMethod(t, r, "GET")
@@ -156,7 +172,7 @@ func TestRepositoryEnvironmentSecret_UpdateSecret_ValidRepo(t *testing.T) {
 
 	mux.HandleFunc("/repositories/1234/environments/env/secrets/public-key", func(w http.ResponseWriter, r *http.Request) {
 		testMethod(t, r, "GET")
-		fmt.Fprint(w, fmt.Sprintf(`{"key_id":"1234","key":"%s"}`, base64.StdEncoding.EncodeToString(kp.PublicKey.Bytes)))
+		fmt.Fprint(w, fmt.Sprintf(`{"key_id":"1234","key":"%s"}`, base64.StdEncoding.EncodeToString(public[:])))
 	})
 
 	mux.HandleFunc("/repositories/1234/environments/env/secrets/mysecret", func(w http.ResponseWriter, r *http.Request) {
@@ -165,7 +181,7 @@ func TestRepositoryEnvironmentSecret_UpdateSecret_ValidRepo(t *testing.T) {
 		if err := json.NewDecoder(r.Body).Decode(&reqBody); err != nil {
 			t.Fatalf("Failed to decode request body: %v", err)
 		}
-		validateSodiumSecret(t, "mysecretvalue", reqBody.EncryptedValue, kp)
+		validateSodiumSecret(t, "mysecretvalue", reqBody.EncryptedValue, public, private)
 		w.WriteHeader(http.StatusNoContent)
 	})
 
@@ -175,7 +191,7 @@ func TestRepositoryEnvironmentSecret_UpdateSecret_ValidRepo(t *testing.T) {
 		Name:        "mysecret",
 		Environment: "env",
 	}
-	err := s.UpdateSecret(ctx, client, "mysecretvalue")
+	err = s.UpdateSecret(ctx, client, "mysecretvalue")
 	if err != nil {
 		t.Fatalf("Expected no error, got %v", err)
 	}
@@ -227,14 +243,15 @@ func testMethod(t *testing.T, r *http.Request, want string) {
 	}
 }
 
-func validateSodiumSecret(t *testing.T, expectedValue string, encryptedValue string, kp sodium.BoxKP) {
+func validateSodiumSecret(t *testing.T, expectedValue string, encryptedValue string, public *[32]byte, private *[32]byte) {
 	encryptedBytes, err := base64.StdEncoding.DecodeString(encryptedValue)
 	if err != nil {
 		t.Fatalf("Expected no error, got %v", err)
 	}
-	newValue, err := sodium.Bytes(encryptedBytes).SealedBoxOpen(kp)
-	if err != nil {
-		t.Fatalf("Expected no error, got %v", err)
+
+	newValue, ok := box.OpenAnonymous(nil, encryptedBytes, public, private)
+	if !ok {
+		t.Fatal("Expected OpenAnonymous to succeed")
 	}
 	if string(newValue) != expectedValue {
 		t.Fatalf("Expected %s, got %s", expectedValue, newValue)

@@ -5,16 +5,6 @@ Key Rotator is a Go program designed to manage and rotate secrets for GitHub rep
 ## Prerequisites
 
 - Go installed. See the [official installation guide](https://golang.org/doc/install) for instructions.
-- [`libsodium`](https://libsodium.gitbook.io/doc/) installed. On macOS, you can install it using Homebrew:
-
-  ```sh
-  brew install libsodium
-  ```
-- [`pkg-config`](https://www.freedesktop.org/wiki/Software/pkg-config/) installed. On macOS, you can install it using Homebrew:
-
-  ```sh
-  brew install pkg-config
-  ```
 - A GitHub personal access token with the necessary permissions to update secrets.
 - The `GITHUB_TOKEN` environment variable set with your GitHub token.
 
