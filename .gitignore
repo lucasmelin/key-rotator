@@ -23,3 +23,6 @@ go.work.sum
 
 # DS Store
 .DS_Store
+
+# Built binaries
+dist/

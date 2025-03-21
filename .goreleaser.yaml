@@ -1,0 +1,62 @@
+version: 2
+project_name: key-rotator
+release:
+  prerelease: auto
+  draft: true
+  name_template: "Key Rotator {{.Version}}"
+
+before:
+  hooks:
+    - go mod tidy
+builds:
+  - id: macos
+    goos:
+      - darwin
+    goarch:
+      - amd64
+      - arm64
+    ldflags:
+      - -s -w -X github.com/lucasmelin/key-rotator/internal/build.Version={{.Version}} -X github.com/cli/cli/v2/internal/build.Date={{time "2006-01-02"}}
+  - id: linux
+    goos:
+      - linux
+    goarch:
+      - arm
+      - amd64
+      - arm64
+    env:
+      - CGO_ENABLED=0
+    ldflags:
+      - -s -w -X github.com/lucasmelin/key-rotator/internal/build.Version={{.Version}} -X github.com/cli/cli/v2/internal/build.Date={{time "2006-01-02"}}
+archives:
+  - formats: [tar.gz]
+    name_template: >-
+      {{ .ProjectName }}_
+      {{- title .Os }}_
+      {{- if eq .Arch "amd64" }}x86_64
+      {{- else if eq .Arch "386" }}i386
+      {{- else }}{{ .Arch }}{{ end }}
+      {{- if .Arm }}v{{ .Arm }}{{ end }}
+    # Use zip for Windows archives.
+    format_overrides:
+      - goos: windows
+        formats: [zip]
+
+changelog:
+  sort: asc
+  filters:
+    exclude:
+      - "^docs:"
+      - "^test:"
+
+brews:
+  - name: key-rotator
+    commit_author:
+      name: lucasmelin
+      email: lucas.melin@gmail.com
+    commit_msg_template: "Brew formula update for {{ .ProjectName}} {{ .Version }}"
+    url_template: "https://github.com/lucasmelin/key-rotator/releases/download/{{ .Tag }}/{{ .ArtifactName }}"
+    repository:
+      owner: lucasmelin
+      name: homebrew-tap
+
