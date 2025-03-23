@@ -43,6 +43,9 @@ brews:
       email: lucas.melin@gmail.com
     commit_msg_template: "Brew formula update for {{ .ProjectName}} {{ .Version }}"
     url_template: "https://github.com/lucasmelin/key-rotator/releases/download/{{ .Tag }}/{{ .ArtifactName }}"
+    homepage: "https://github.com/lucasmelin/key-rotator"
+    description: "Easily rotate your manually managed secrets."
+    license: "MIT"
     repository:
       owner: lucasmelin
       name: homebrew-tap
