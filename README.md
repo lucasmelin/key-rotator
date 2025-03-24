@@ -2,11 +2,35 @@
 
 Key Rotator is a Go program designed to manage and rotate secrets for GitHub repositories. It reads a YAML configuration file specifying multiple secrets and their destinations, prompts the user for the secret values, encrypts them using the repository's public key, and updates the secrets in the specified GitHub repositories.
 
-## Prerequisites
+## Installation
+
+### Homebrew
+
+```shell
+brew install lucasmelin/tap/key-rotator
+```
+
+### Build from source
+
+#### Prerequisites
 
 - Go installed. See the [official installation guide](https://golang.org/doc/install) for instructions.
-- A GitHub personal access token with the necessary permissions to update secrets.
-- The `GITHUB_TOKEN` environment variable set with your GitHub token.
+
+#### Build steps
+
+```shell
+# Clone the repository via HTTPS
+git clone https://github.com/lucasmelin/key-rotator.git
+
+# Change into the repository directory
+cd key-rotator
+
+# Download the dependencies
+go mod tidy
+
+# Install key-rotator in your $GOPATH/bin directory
+go install .
+```
 
 ## Configuration
 
@@ -37,7 +61,7 @@ secrets:
 
 ## Usage
 
-1. Clone the repository and navigate to the project directory.
+1. Navigate to the directory containing your YAML configuration file.
 
 2. Ensure you have the `GITHUB_TOKEN` environment variable set:
 
@@ -45,16 +69,16 @@ secrets:
    export GITHUB_TOKEN=your_github_token
    ```
 
-3. Run the program with the path to your YAML configuration file:
+3. Run `key-rotator rotate` with the path to your YAML configuration file:
 
    ```sh
-   go run . rotate path/to/your/key.yaml
+   key-rotator rotate path/to/your/key.yaml
    # Or optionally, use the dry-run flag to see what
    # changes would be made without updating the secrets.
-   go run . rotate --dry-run path/to/your/key.yaml
+   key-rotator rotate --dry-run path/to/your/key.yaml
    ```
-
-4. Follow the prompts to enter the secret values.
+   
+4. Follow the prompts to rotate all the secrets defined in your configuration file. To cancel the program, press <kbd>Ctrl</kbd>+<kbd>c</kbd>.
 
 ## License
 
